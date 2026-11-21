@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>កម្មវិធីត្រៀមប្រឡងថ្នាក់ជាតិ - វេជ្ជសាស្ត្រទូទៅ (General Medicine)</title>
+    
+    <script>
+      const manifest = {
+        name: "National General Medicine Quiz",
+        short_name: "GM Quiz",
+        start_url: window.location.href.split('?')[0],
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#06a6e1",
+        orientation: "portrait",
+        icons: [
+          {
+            src: "https://raw.githubusercontent.com/chamroeunchet-blip/icon/refs/heads/main/android-chrome-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable"
+          },
+          {
+            src: "https://raw.githubusercontent.com/chamroeunchet-blip/icon/refs/heads/main/android-chrome-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable"
+          }
+        ]
+      };
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+      document.head.appendChild(manifestLink);
+    </script>
+    
+    <meta name="theme-color" content="#06a6e1">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/chamroeunchet-blip/icon/refs/heads/main/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="General Medicine Quiz">
+
+    <meta property="og:title" content="National General Medicine Quiz">
+    <meta property="og:description" content="ព្យាយាម ធ្វើតេស្តសាកល្បង និងហ្វឹកហាត់ការចងចាំរបស់អ្នកឲ្យកាន់តែឆាប់ចាំ (General Medicine).">
+    <meta property="og:image" content="https://github.com/national-quiz-kh/midwifery/blob/main/web%20crawling.png?raw=true">
+
+    <link rel="icon" href="https://raw.githubusercontent.com/chamroeunchet-blip/icon/refs/heads/main/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Firebase SDK សម្រាប់ជាស្ពានចម្លងទិន្នន័យស្វ័យប្រវត្តិនៅខាងក្រោយ -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&display=swap');
+      
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: transparent;
+        font-family: 'Battambang', Arial, system-ui, -apple-system, sans-serif;
+        overflow: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      input, select { user-select: text; -webkit-user-select: text; }
+
+      body::before {
+        content: "";
+        position: fixed;
+        top: -20px; left: -20px; right: -20px; bottom: -20px;
+        z-index: -1;
+        background-color: transparent; 
+        background-image: url('https://blogger.googleusercontent.com/img/a/AVvXsEjB0-hoKZLmrCiKRNoHVm7TVw4CPuXYnX0PKwsShzjI1qR4MVSoi8lrYKF7Zx2gUYBgZaYQIGsqJkP9i3Sjm38piq8g0MyYtEPqmTel8-ZCqACJYjEXKeOamA7fUm5JGu_Z8B25qZRANlEixmaMsoxI9nW1nkvKumuNGmTvDA5phOufQk_4Di4_1Eim=s16000');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        filter: blur(2.5px); 
+      }
+
+      /* SPLASH SCREEN STYLES */
+      #splash-screen {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(180deg, #ffffff 0%, #f0f7ff 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+      }
+      #splash-screen img {
+        width: 120px;
+        height: 120px;
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(6, 166, 225, 0.2);
+        margin-bottom: 20px;
+        animation: splash-pulse 2s infinite ease-in-out;
+      }
+      .splash-spinner {
+        margin-top: 25px;
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(6, 166, 225, 0.2);
+        border-radius: 50%;
+        border-top-color: #06a6e1;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes splash-pulse {
+        0%, 100% { transform: scale(0.95); }
+        50% { transform: scale(1.05); }
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .splash-hidden { opacity: 0; visibility: hidden; }
+
+      /* LOGIN STYLES */
+      #login-container {
+        height: 100vh;
+        overflow-y: auto; 
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 28px 16px;
+        box-sizing: border-box;
+      }
+      .login-card {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+        padding: 28px 30px 22px 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(15,23,42,0.15);
+        width: 100%;
+        max-width: 520px;
+        box-sizing: border-box;
+        border: 1px solid rgba(15,23,42,0.03);
+        margin-top: 15px;
+      }
+      .login-input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        box-sizing: border-box;
+        font-size: 14px;
+        color: #111827;
+        background: #fff;
+        outline: none;
+        transition: box-shadow .12s, border-color .12s;
+      }
+      .login-input:focus {
+        border-color: #7dd3fc;
+        box-shadow: 0 6px 18px rgba(14,165,233,0.08);
+      }
+      .login-btn {
+        display: inline-block;
+        background: linear-gradient(180deg,#06a6e1,#0289cc);
+        color: #fff;
+        padding: 12px 14px;
+        border-radius: 8px;
+        border: 0;
+        cursor: pointer;
+        width: 100%;
+        font-weight: 700;
+        font-size: 15px;
+        box-shadow: 0 6px 18px rgba(3,105,161,0.12);
+      }
+      #msg { color: #dc2626; text-align: center; margin-top: 8px; min-height: 18px; white-space: pre-wrap; font-size: 14px; }
+      .social-row { display: flex; gap: 18px; align-items: center; justify-content: center; margin-top: 12px; }
+      .social { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+      .social .btn-circle {
+        width: 39px; height: 39px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 6px 18px rgba(2,6,23,0.06); border: 0; cursor: pointer; background: #fff;
+      }
+      .social img { width: 27px; height: 27px; object-fit: cover; }
+      .social small { display: block; font-size: 12px; color: #374151; margin-top: 6px; }
+
+      /* VIEWER (QUIZ CONTAINER) */
+      #viewer {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        background: #f1f5f9;
+        z-index: 100;
+      }
+
+      #logoutBtn { position: fixed; top: 4px; right: 12px; background: #ef4444; color: #fff; padding: 5px 12px; border-radius: 6px; border: 0; cursor: pointer; display: none; z-index: 2000; font-size: 13px; font-weight: bold; }
+      #waitingBox { display: none; position: fixed; top: 18px; left: 50%; transform: translateX(-50%); background: #f3f4f6; padding: 10px 14px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); z-index: 2000; }
+
+      .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+      .popup { background: #fff; padding: 18px; border-radius: 12px; width: 360px; max-width: 92%; text-align: center; }
+      .popup img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; margin: 0 auto 12px; }
+      .popup h3 { margin: 0 0 10px; font-size: 18px; color: #111; font-weight: bold; }
+      .popup .controls { display: flex; gap: 10px; justify-content: center; }
+      .btn-allow { background: #10b981; color: #fff; padding: 8px 12px; border-radius: 8px; border: 0; cursor: pointer; }
+      .btn-decline { background: #ef4444; color: #fff; padding: 8px 12px; border-radius: 8px; border: 0; cursor: pointer; }
+
+      .home-main { position: fixed; top: 4px; left: 6px; text-decoration: none; padding: 4px 12px; background-color: #709141; color: white; border-radius: 5px; font-size: 0.85em; z-index: 1000; }
+      .home-mini { position: fixed; top: 0px; left: 0px; width: 100%; height: 36px; background-color: black; color: white; z-index: 999; }
+
+      #fullscreenBtn {
+          position: fixed; top: 4px; left: 105px; background: #074915; color: white; padding: 4px 10px;
+          border-radius: 5px; border: 1px solid rgba(255,255,255,0.01); cursor: pointer; z-index: 1000;
+          font-size: 0.85em; display: none; align-items: center; gap: 6px;
+      }
+      @media (hover: hover) and (pointer: fine) { #fullscreenBtn { display: flex; } }
+
+      /* PWA BANNER */
+      .pwa-install-banner {
+          position: fixed; bottom: 20px; left: 20px; right: 20px; background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px); border-radius: 12px; padding: 16px; display: flex; align-items: center;
+          justify-content: space-between; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 9999;
+          transform: translateY(150%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      .pwa-install-banner.show { transform: translateY(0); }
+
+      /* QUIZ APP SPECIFIC STYLES */
+      .correct-answer-highlight { background-color: #d1fae5; border-left: 4px solid #059669; }
+      .checklist-item { scroll-margin-top: 2rem; }
+      input:checked ~ #bg-toggle-q, input:checked ~ #bg-toggle-a, input:checked ~ #bg-toggle-auto, input:checked ~ #bg-toggle-cal-popup, input:checked ~ #bg-toggle-batch { background-color: #059669; }
+      input:checked ~ #dot-toggle-q, input:checked ~ #dot-toggle-a, input:checked ~ #dot-toggle-auto, input:checked ~ #dot-toggle-cal-popup, input:checked ~ #dot-toggle-batch { transform: translateX(1.25rem); }
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .module-btn.active { background-color: #059669; color: white; border-color: #059669; }
+
+      /* ========================================================= */
+      /* 3D ANIMATED CHARGING BATTERY STYLES                       */
+      /* ========================================================= */
+      .battery-card-box {
+          background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+          border-radius: 20px;
+          padding: 18px 22px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 14px 30px rgba(2, 6, 23, 0.35), inset 0 1px 1px rgba(255,255,255,0.15);
+          border: 1px solid rgba(255,255,255,0.1);
+          position: relative;
+          overflow: hidden;
+      }
+      .battery-cap {
+          width: 44px;
+          height: 12px;
+          background: linear-gradient(90deg, #94a3b8 0%, #f8fafc 50%, #64748b 100%);
+          border-radius: 6px 6px 0 0;
+          margin-bottom: -2px;
+          z-index: 2;
+          box-shadow: 0 -2px 8px rgba(255,255,255,0.2);
+      }
+      .battery-shell {
+          width: 118px;
+          height: 205px;
+          background: linear-gradient(90deg, #0f172a 0%, #334155 32%, #1e293b 70%, #090d16 100%);
+          border: 3px solid rgba(226, 232, 240, 0.85);
+          border-radius: 18px;
+          padding: 7px;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          overflow: hidden;
+          transition: box-shadow 0.5s ease, border-color 0.5s ease;
+      }
+      .battery-shell::before {
+          content: "";
+          position: absolute;
+          top: 0; bottom: 0; left: 16%; width: 22%;
+          background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.18), rgba(255,255,255,0.02));
+          z-index: 6;
+          pointer-events: none;
+      }
+      .battery-liquid {
+          width: 100%;
+          height: 0%;
+          border-radius: 11px;
+          position: relative;
+          transition: height 0.7s cubic-bezier(0.22, 1, 0.36, 1), background 0.5s ease, box-shadow 0.5s ease;
+          z-index: 2;
+          overflow: hidden;
+      }
+      .battery-liquid::after {
+          content: "";
+          position: absolute;
+          inset: -40px 0 0 0;
+          background-image: repeating-linear-gradient(
+              0deg,
+              rgba(255, 255, 255, 0.28) 0px,
+              rgba(255, 255, 255, 0.28) 10px,
+              transparent 10px,
+              transparent 22px
+          );
+          animation: chargeBarsFlow 1.4s linear infinite;
+      }
+      .battery-charging-wave {
+          position: absolute;
+          left: 0; right: 0; bottom: 0;
+          height: 100%;
+          background: linear-gradient(0deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
+          background-size: 100% 60px;
+          animation: chargePulseUp 1.8s ease-in-out infinite;
+          z-index: 3;
+          pointer-events: none;
+      }
+      @keyframes chargeBarsFlow {
+          0% { transform: translateY(22px); }
+          100% { transform: translateY(0px); }
+      }
+      @keyframes chargePulseUp {
+          0% { transform: translateY(100%); opacity: 0; }
+          50% { opacity: 0.75; }
+          100% { transform: translateY(-100%); opacity: 0; }
+      }
+      .battery-bolt-wrap {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 8;
+          pointer-events: none;
+      }
+      .battery-bolt-svg {
+          width: 48px;
+          height: 68px;
+          animation: boltGlowPulse 1.5s infinite ease-in-out;
+      }
+      @keyframes boltGlowPulse {
+          0%, 100% { transform: scale(0.94); filter: drop-shadow(0 0 8px currentColor); opacity: 0.9; }
+          50% { transform: scale(1.08); filter: drop-shadow(0 0 18px currentColor); opacity: 1; }
+      }
+      .battery-pct-badge {
+          font-size: 1.45rem;
+          font-weight: 900;
+          color: #ffffff;
+          text-shadow: 0 2px 8px rgba(0,0,0,0.85);
+          margin-top: 2px;
+      }
+    </style>
+</head>
+<body>
+
+  <!-- SPLASH SCREEN -->
+  <div id="splash-screen">
+    <img src="https://raw.githubusercontent.com/chamroeunchet-blip/icon/refs/heads/main/android-chrome-512x512.png" alt="Quiz Logo">
+    <h3 class="text-xl font-bold text-slate-900">National General Medicine Quiz</h3>
+    <p class="text-sm text-slate-500 mt-1">កំពុងដំណើរការ...</p>
+    <div class="splash-spinner"></div>
+  </div>
+
+  <!-- TOP BAR -->
+  <div id="top-bar-bg" class="home-mini"></div>
+  <a id="top-home-btn" class="home-main" href="#">Home 🏡</a>
+  <button id="fullscreenBtn"><i class="fa-solid fa-expand"></i> Full Screen</button>
+  <button id="logoutBtn">Logout</button>
+
+  <!-- LOGIN SECTION -->
+  <div id="login-container">
+    <div class="login-card">
+      <h2 class="text-center mb-3.5 text-slate-900 text-xl font-bold">Login to General Medicine Quiz</h2>
+
+      <label for="username" class="block mb-1.5 text-slate-700 font-bold text-xs">Username</label>
+      <input id="username" type="text" class="login-input" placeholder="អក្សរធំផ្តើមអក្សរតូចបន្ទាប់">
+
+      <label for="password" class="block mb-1.5 text-slate-700 font-bold text-xs">Password</label>
+      <input id="password" type="password" class="login-input" placeholder="Your password">
+
+      <div class="flex items-center gap-2.5 mb-3.5">
+        <input id="stay" type="checkbox">
+        <label for="stay" class="text-xs text-black font-normal m-0">Stay Login (បន្តនៅក្នុងប្រព័ន្ធ)</label>
+      </div>
+
+      <button id="loginBtn" class="login-btn">Login (ចូល)</button>
+      <div id="msg"></div>
+
+      <div class="mt-3 text-center text-slate-500 text-xs leading-snug">
+        <div>One Account one device</div>
+        <span class="block text-emerald-700 font-bold my-1.5">ជូនពរលោកគ្រូ អ្នកគ្រូពេទ្យទាំងអស់ជោគជ័យក្នុងការប្រឡង</span>
+        <div class="text-black mt-1.5">
+          <p>(សូមកុំផ្តល់លេខសំងាត់របស់អ្នកដល់អ្នកដទៃ ពុំនោះទេអ្នកមិនអាច Login ចូលគណនេយ្យរបស់អ្នកបានទេ។)</p>
+          Easy to learn Register Now,<br> 1 Account $5/year and Renew only $2/year, <span class="text-red-600">👩‍⚕️👨‍⚕️</span> contact:
+        </div>
+
+        <div class="social-row">
+          <div class="social">
+            <a class="btn-circle" href="https://t.me/chet_chamroeun" target="_blank" title="Telegram">
+              <img src="https://blogger.googleusercontent.com/img/a/AVvXsEj46Ry9jeT_CFUKU-a8W5hxsXwQnfEWDhTRKrUUQ7CvkgDPOXWNcsKjwHbv-r7hzyrkeY4CWEPfPzOhqdmbPZzwijNSLSHdrISTo_mlVrn_eK0BVzPt2sykgG9sXPBxE1um6Sec02Zz4v7XIAIqSP9Ud2MuUTAEQeuyBMVOLmXYgSebKdyjnD-uHoWvWg=s16000" alt="Telegram">
+            </a>
+            <small>Telegram</small>
+          </div>
+          <div class="social">
+            <a class="btn-circle" href="https://m.me/chomraeun.chet" target="_blank" title="Messenger">
+              <img src="https://blogger.googleusercontent.com/img/a/AVvXsEjIw1bu_SFGar30bIlmncFL3SPBkh5I-9TxvQoUrEdNWezwl9USBe87z-HX2QnPRAg9WBrKVBi21PkFrYKTpOO4pixVWOwebKT7Wv_E0gDPwCy1it4rqisGZX0IOISML29ONJ6YkZH-6Ve9VRUHvyVTeFLsLUJL76xQY1Qe9s6RbngHB0h6ktjnSmjfsA=s16000" alt="Messenger">
+            </a>
+            <small>Messenger</small>
+          </div>
+          <div class="social">
+            <a class="btn-circle" href="tel:+85515631993" title="Call">
+              <img src="https://blogger.googleusercontent.com/img/a/AVvXsEh7wHCzEGU-XTiqrfMeMADGVGShejxb22cmrK5rybGY3TxOHTAMPENrAjk8DuutCoPaJrofuBoM76spdqvu7_KCng0frjehxA-J5S3sPCEqcq-nTA5tXh1mrV0RLQ-vcoy2h6HopFNl-p4ho51CWUVfHEMYpWhBeJjQ7jb6tQjMnwISH2MCyNCQbxtJHA=s16000" alt="Call">
+            </a>
+            <small>Call</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="waitingBox">Waiting for account owner to approve...</div>
+  <div id="approvalOverlay" style="display:none"></div>
+
+  <!-- ========================================================= -->
+  <!-- VIEWER: ផ្ទុកកម្មវិធី QUIZ វេជ្ជសាស្ត្រទូទៅ (GENERAL MEDICINE)   -->
+  <!-- ========================================================= -->
+  <div id="viewer" class="pt-9 transition-all duration-200">
+    <div class="text-slate-800 bg-slate-100 h-full overflow-hidden flex">
+        <!-- Sidebar Tracker -->
+        <aside id="sidebar-tracker" class="fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-slate-200 shadow-2xl md:shadow-none transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 flex flex-col pt-9 md:pt-0">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                <h2 class="font-bold text-lg text-emerald-800 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    លំដាប់សំណួរ
+                </h2>
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-500 hover:text-slate-800 bg-slate-200 p-1 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-4 bg-white text-xs text-slate-600 flex flex-col gap-2.5 border-b shrink-0 shadow-sm z-10">
+                <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full border border-slate-300 bg-white shadow-sm"></div> មិនទាន់ឆ្លើយ (Unanswered)</div>
+                <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full border-2 border-sky-400 bg-sky-100 shadow-sm"></div> កំពុងឆ្លើយ (Current)</div>
+                <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full border border-emerald-600 bg-emerald-500 shadow-sm"></div> ត្រូវ (Correct)</div>
+                <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full border border-red-600 bg-red-500 shadow-sm"></div> ខុស (Incorrect)</div>
+            </div>
+            <div id="question-circles-container" class="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-wrap gap-2.5 content-start bg-slate-50"></div>
+        </aside>
+
+        <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/40 z-30 hidden md:hidden backdrop-blur-sm transition-opacity" onclick="toggleSidebar()"></div>
+
+        <!-- Main Quiz Content -->
+        <main class="flex-1 h-full overflow-y-auto relative custom-scrollbar scroll-smooth">
+            <div id="main-content-wrapper" class="max-w-4xl mx-auto p-4 md:p-6 pb-24">
+                <header id="main-quiz-header" class="text-center mb-6 relative flex items-center justify-center flex-col">
+                    <div class="w-full flex justify-between items-center mb-4 md:hidden">
+                        <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:bg-slate-200 rounded-md bg-white shadow-sm border border-slate-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        </button>
+                        <h1 class="text-lg font-bold text-emerald-700">ត្រៀមប្រឡង វេជ្ជសាស្ត្រទូទៅ</h1>
+                        <div class="w-10"></div> 
+                    </div>
+                    
+                    <h1 class="hidden md:block text-2xl md:text-3xl font-bold text-emerald-700 mb-1">កម្មវិធីត្រៀមប្រឡងថ្នាក់ជាតិ - វេជ្ជសាស្ត្រទូទៅ (General Medicine)</h1>
+                    <p class="text-slate-500 text-sm md:text-base mb-4">ជ្រើសរើសមុខវិជ្ជាខាងក្រោម (Basic, Medicine, Surgery, Gyneco, Pediatric)</p>
+
+                    <div class="flex flex-wrap justify-center gap-2 mb-2 w-full">
+                        <button onclick="switchModule('Basic')" id="mod-Basic" class="module-btn flex-1 min-w-[100px] py-2 px-3 bg-white border border-slate-300 rounded-md text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm active">Basic</button>
+                        <button onclick="switchModule('Medicine')" id="mod-Medicine" class="module-btn flex-1 min-w-[100px] py-2 px-3 bg-white border border-slate-300 rounded-md text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Medicine</button>
+                        <button onclick="switchModule('Surgery')" id="mod-Surgery" class="module-btn flex-1 min-w-[100px] py-2 px-3 bg-white border border-slate-300 rounded-md text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Surgery</button>
+                        <button onclick="switchModule('Gyneco')" id="mod-Gyneco" class="module-btn flex-1 min-w-[100px] py-2 px-3 bg-white border border-slate-300 rounded-md text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Gyneco</button>
+                        <button onclick="switchModule('Pediatric')" id="mod-Pediatric" class="module-btn flex-1 min-w-[100px] py-2 px-3 bg-white border border-slate-300 rounded-md text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Pediatric</button>
+                        <button onclick="switchModule('ALL')" id="mod-ALL" class="module-btn flex-1 min-w-[120px] py-2 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 border border-transparent rounded-md text-sm font-bold text-white hover:from-emerald-600 hover:to-teal-600 transition-colors shadow-md">Quiz រួម (All)</button>
+                    </div>
+
+                    <!-- របារបង្ហាញផែនការសិក្សាប្រចាំថ្ងៃ សង្ខេប -->
+                    <div id="daily-goal-banner" class="w-full mt-2 bg-gradient-to-r from-sky-50 to-emerald-50 border border-emerald-200 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2 text-xs md:text-sm shadow-sm hidden">
+                        <div class="flex items-center gap-2 font-bold text-emerald-800">
+                            <i class="fa-solid fa-calendar-check text-emerald-600 text-base"></i>
+                            <span id="banner-plan-text">ផែនការថ្ងៃនេះ៖ 0 / 0 សំណួរ</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span id="banner-accuracy-text" class="bg-white px-2.5 py-1 rounded border border-slate-200 font-bold text-sky-700">អត្រាធ្វើត្រូវ៖ 0%</span>
+                            <button onclick="switchTab('plan')" class="text-emerald-700 underline font-bold hover:text-emerald-900">មើលប្រតិទិនលម្អិត</button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- TABS NAVIGATION -->
+                <div id="main-tabs-nav" class="flex bg-white rounded-t-lg shadow-sm overflow-hidden flex-wrap">
+                    <button id="tab-lesson" onclick="switchTab('lesson')" class="flex-1 py-3 px-2 text-center font-bold text-emerald-700 bg-emerald-50 border-b-2 border-emerald-600 transition-colors min-w-[110px]"><i class="fa-solid fa-book-open mr-1"></i> មេរៀន</button>
+                    <button id="tab-quiz" onclick="switchTab('quiz')" class="flex-1 py-3 px-2 text-center font-bold text-slate-500 hover:bg-slate-50 border-b-2 border-transparent transition-colors min-w-[110px]"><i class="fa-solid fa-gamepad mr-1"></i> Game Mode</button>
+                    <button id="tab-checklist" onclick="switchTab('checklist')" class="flex-1 py-3 px-2 text-center font-bold text-slate-500 hover:bg-slate-50 border-b-2 border-transparent transition-colors min-w-[110px]"><i class="fa-solid fa-list-check mr-1"></i> Checklist</button>
+                    <button id="tab-plan" onclick="switchTab('plan')" class="flex-1 py-3 px-2 text-center font-bold text-slate-500 hover:bg-slate-50 border-b-2 border-transparent transition-colors min-w-[120px]"><i class="fa-solid fa-calendar-days mr-1 text-rose-500"></i> ផែនការរៀនសូត្រ</button>
+                </div>
+
+                <!-- 1. Lesson Section -->
+                <div id="section-lesson" class="bg-white p-6 rounded-b-lg shadow-sm">
+                    <div class="flex justify-between items-center mb-6 border-b pb-4 flex-wrap gap-4">
+                        <h2 class="text-xl font-bold text-slate-800" id="lesson-title">មេរៀន Basic</h2>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">ចម្លើយត្រូវមានពណ៌បៃតង</span>
+                    </div>
+                    <div id="lesson-container" class="space-y-8"></div>
+                </div>
+
+                <!-- 2. Quiz Section -->
+                <div id="section-quiz" class="bg-white p-6 rounded-b-lg shadow-sm hidden">
+                    <div class="flex flex-wrap justify-between items-center mb-6 border-b pb-4 gap-3">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span id="question-tracker" class="font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-md shadow-inner">សំណួរទី 1</span>
+                            <span id="score-tracker" class="font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-md border border-emerald-100 shadow-sm">ពិន្ទុ: 0</span>
+                            <span id="quiz-timer-display" class="hidden font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-md border border-rose-200 shadow-sm flex items-center gap-1.5">
+                                <i class="fa-regular fa-clock"></i> <span id="quiz-timer-text">00:00</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openSettings()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-md text-sm font-bold border border-slate-200">កំណត់</button>
+                            <button onclick="promptRestart()" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-md text-sm font-bold border border-red-100">ចាប់ផ្តើមថ្មី</button>
+                            <!-- ប៊ូតុង X សម្រាប់ចុច Unhide បង្ហាញ Menu Bar និងក្បាលទំព័រវិញ -->
+                            <button id="btn-toggle-exam-chrome" onclick="toggleExamFocusMode()" title="បង្ហាញម៉ឺនុយ និងក្បាលទំព័រវិញ (Unhide)" class="bg-slate-800 hover:bg-slate-700 text-white w-9 h-9 rounded-md font-bold text-base flex items-center justify-center shadow-sm transition-colors">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="quiz-active-area">
+                        <!-- អក្សរសំណួរ៖ ជាអក្សរធម្មតា (font-normal) និងទំហំ text-base ស្មើគ្នានឹងចម្លើយ -->
+                        <div id="quiz-question-text" class="text-base font-normal text-slate-800 mb-4 leading-relaxed"></div>
+                        <div id="quiz-image-container" class="mb-6 hidden">
+                            <img id="quiz-image" src="" alt="Question Image" class="max-w-full md:max-w-2xl h-auto rounded-lg shadow-sm border border-slate-200">
+                        </div>
+                        <div id="quiz-options-container" class="space-y-3 mb-6"></div>
+                        <div id="quiz-feedback" class="hidden p-4 rounded-lg mb-4 font-bold text-lg"></div>
+                        
+                        <div id="quiz-note-wrapper" class="hidden mb-6">
+                            <button onclick="toggleQuizNote()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm font-bold rounded-md border border-amber-300 shadow-sm">
+                                [បញ្ជាក់]
+                            </button>
+                            <div id="quiz-note-content" class="hidden mt-2 p-4 bg-amber-50 border-l-4 border-amber-500 text-slate-700 text-sm rounded-r-md leading-relaxed shadow-inner"></div>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button id="btn-submit" onclick="submitAnswer()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg shadow-md w-full md:w-auto">បញ្ជូនចម្លើយ</button>
+                            <button id="btn-next" onclick="nextQuestion()" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md w-full md:w-auto">សំណួរបន្ទាប់ &rarr;</button>
+                        </div>
+                    </div>
+
+                    <!-- ផ្ទាំងបញ្ចប់ការប្រឡងក្នុង Game Mode -->
+                    <div id="quiz-completed-area" class="hidden text-center py-10">
+                        <h2 id="quiz-completed-title" class="text-3xl font-bold text-slate-800 mb-2">ការប្រឡងបានបញ្ចប់!</h2>
+                        <div class="text-5xl font-bold text-emerald-600 my-6" id="final-score-text"></div>
+                        <p id="round-completion-msg" class="text-slate-600 mb-6 font-bold"></p>
+                        <div class="flex flex-wrap justify-center gap-4">
+                            <button id="btn-show-results-quiz" onclick="openWrongAnswersPage('quiz')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-8 rounded-lg shadow-md flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-check"></i> លទ្ធផល (ពិនិត្យសំណួរខុស)
+                            </button>
+                            <button onclick="forceRestart(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-md">
+                                ធ្វើតេស្តជុំបន្ទាប់ (Repeat Round)
+                            </button>
+                            <button id="btn-next-batch-quiz" onclick="startNextQuestionBatch()" class="hidden bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-8 rounded-lg shadow-md flex items-center gap-2">
+                                <i class="fa-solid fa-forward-step"></i> <span id="next-batch-text-quiz">ធ្វើ 20 សំណួរបន្តទៀត</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Checklist Section -->
+                <div id="section-checklist" class="bg-white p-6 rounded-b-lg shadow-sm hidden">
+                    <div class="flex flex-wrap justify-between items-center mb-6 border-b pb-4 gap-4">
+                        <div class="flex items-center gap-4">
+                            <h2 class="text-xl font-bold text-slate-800">Checklist Mode</h2>
+                            <span id="checklist-tracker" class="font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-md border border-emerald-100">បញ្ចប់: 0/0</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openSettings()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-md text-sm font-bold border border-slate-200">កំណត់</button>
+                            <button onclick="promptRestart()" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-md text-sm font-bold border border-red-100">ចាប់ផ្តើមថ្មី</button>
+                        </div>
+                    </div>
+                    <div id="checklist-container" class="space-y-8"></div>
+                    <div id="checklist-completed-message" class="hidden text-center py-8 mt-8 border-t border-slate-200 bg-emerald-50 rounded-lg">
+                        <h3 class="text-2xl font-bold text-emerald-600 mb-4">អបអរសាទរ! អ្នកបានពិនិត្យគ្រប់សំណួរហើយ។</h3>
+                        <div class="flex flex-wrap justify-center gap-4">
+                            <button onclick="openWrongAnswersPage('checklist')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-check"></i> លទ្ធផល (ពិនិត្យសំណួរខុស)
+                            </button>
+                            <button onclick="forceRestart(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md">
+                                ធ្វើតេស្តជុំបន្ទាប់ (Repeat Round)
+                            </button>
+                            <button id="btn-next-batch-chk" onclick="startNextQuestionBatch()" class="hidden bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md flex items-center gap-2">
+                                <i class="fa-solid fa-forward-step"></i> <span id="next-batch-text-chk">ធ្វើ 20 សំណួរបន្តទៀត</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Study Plan Section (ជាមួយប្រតិទិន និង រូបថ្មធំកំពុងសាកភ្លើងនៅខាងលើខាងស្តាំ) -->
+                <div id="section-plan" class="bg-white p-6 rounded-b-lg shadow-sm hidden">
+                    <div class="border-b pb-4 mb-6 flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-bullseye text-rose-500"></i> ការកំណត់ផែនការរៀនសូត្រ & ប្រតិទិន (Study Planner & Calendar)
+                            </h2>
+                            <p class="text-sm text-slate-500 mt-1">កំណត់កាលបរិច្ឆេទប្រឡង ឬចំនួនថ្ងៃ ដើម្បីបង្កើតប្រតិទិនសិក្សាប្រចាំថ្ងៃ និងតាមដានថាមពលនៃការសិក្សា</p>
+                        </div>
+
+                        <label class="flex items-center gap-3 cursor-pointer bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="text-xs md:text-sm font-bold text-slate-700">
+                                <i class="fa-solid fa-bell text-amber-500 mr-1"></i> បង្ហាញ Pop-up ប្រតិទិនពេល Login៖
+                            </span>
+                            <div class="relative shrink-0">
+                                <input type="checkbox" id="plan-popup-toggle-main" onchange="togglePopupSetting(this)" class="sr-only" checked>
+                                <div class="block bg-slate-300 w-11 h-6 rounded-full transition-colors" id="bg-toggle-cal-popup"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform shadow" id="dot-toggle-cal-popup"></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6 items-stretch">
+                        <div class="lg:col-span-8 flex flex-col justify-between space-y-5">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">១. ជ្រើសរើសរបៀបកំណត់ថ្ងៃ៖</label>
+                                    <select id="plan-input-mode" onchange="togglePlanInputType()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white font-bold text-slate-700">
+                                        <option value="date">កំណត់កាលបរិច្ឆេទប្រឡង (Exam Date)</option>
+                                        <option value="days">កំណត់ចំនួនថ្ងៃរៀន (Number of Days)</option>
+                                    </select>
+                                </div>
+
+                                <div id="plan-date-wrapper">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">២. កាលបរិច្ឆេទប្រឡង៖</label>
+                                    <input type="date" id="plan-exam-date" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                                </div>
+
+                                <div id="plan-days-wrapper" class="hidden">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">២. ចំនួនថ្ងៃត្រូវរៀនសរុប៖</label>
+                                    <input type="number" id="plan-total-days" min="1" max="365" value="30" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white" placeholder="ឧ. 30 ថ្ងៃ">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">៣. គោលដៅ Repeat សរុប (ដើម្បីចាំ ១០០%)៖</label>
+                                    <select id="plan-target-repeats" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white font-bold text-emerald-700">
+                                        <option value="3">៣ ដង (កម្រិតមូលដ្ឋាន - ងាយចាំ)</option>
+                                        <option value="4" selected>៤ ដង (កម្រិតណែនាំ - អត្រាត្រូវខ្ពស់ ~៩៥%)</option>
+                                        <option value="5">៥ ដង (កម្រិតច្បាស់លាស់ - ១០០% Mastery)</option>
+                                    </select>
+                                </div>
+
+                                <div class="md:col-span-3 flex flex-wrap justify-between items-center gap-3 pt-2 border-t border-slate-200 mt-1">
+                                    <button onclick="openCalendarPopupManual()" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold py-2 px-4 rounded-lg text-xs md:text-sm flex items-center gap-2">
+                                        <i class="fa-solid fa-eye text-sky-600"></i> មើលគំរូ Pop-up ប្រតិទិន
+                                    </button>
+                                    <button onclick="calculateAndSaveStudyPlan()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md text-sm flex items-center gap-2">
+                                        <i class="fa-solid fa-calculator"></i> បង្កើត និងរក្សាទុកផែនការ (Generate Plan)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-center">
+                                    <div class="text-xs text-emerald-700 font-bold">ពេលវេលានៅសល់</div>
+                                    <div id="stat-days-left" class="text-xl font-bold text-emerald-900 mt-1">0 ថ្ងៃ</div>
+                                    <div id="stat-exam-date-label" class="text-[11px] text-emerald-600 mt-0.5">-</div>
+                                </div>
+                                <div class="bg-sky-50 border border-sky-200 p-3.5 rounded-xl text-center">
+                                    <div class="text-xs text-sky-700 font-bold">គោលដៅសំណួរថ្ងៃនេះ</div>
+                                    <div id="stat-daily-q" class="text-xl font-bold text-sky-900 mt-1">0 សំណួរ/ថ្ងៃ</div>
+                                    <div id="stat-total-q-pool" class="text-[11px] text-sky-600 mt-0.5">សំណួរសរុប៖ 0</div>
+                                </div>
+                                <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-center">
+                                    <div class="text-xs text-amber-700 font-bold">សម្រេចបានថ្ងៃនេះ</div>
+                                    <div id="stat-today-done" class="text-xl font-bold text-amber-900 mt-1">0 / 0</div>
+                                    <div id="stat-today-percent" class="text-[11px] text-amber-700 mt-0.5">0% នៃផែនការថ្ងៃនេះ</div>
+                                </div>
+                                <div class="bg-purple-50 border border-purple-200 p-3.5 rounded-xl text-center">
+                                    <div class="text-xs text-purple-700 font-bold">អត្រាធ្វើត្រូវបច្ចុប្បន្ន</div>
+                                    <div id="stat-overall-acc" class="text-xl font-bold text-purple-900 mt-1">0%</div>
+                                    <div id="stat-repeat-advice-short" class="text-[11px] text-purple-700 mt-0.5">គោលដៅ៖ 100%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ខាងលើខាងស្តាំ៖ រូបថ្មធំកំពុងសាកភ្លើង -->
+                        <div class="lg:col-span-4 flex">
+                            <div class="battery-card-box w-full">
+                                <div class="text-xs font-bold text-slate-300 mb-2 tracking-wide uppercase flex items-center gap-1.5">
+                                    <i class="fa-solid fa-bolt text-emerald-400"></i> ថាមពលសិក្សាថ្ងៃនេះ (Charging)
+                                </div>
+                                <div class="battery-cap"></div>
+                                <div id="plan-battery-shell" class="battery-shell">
+                                    <div class="battery-charging-wave"></div>
+                                    <div id="plan-battery-liquid" class="battery-liquid" style="height: 15%;"></div>
+                                    <div class="battery-bolt-wrap">
+                                        <svg id="plan-battery-bolt" class="battery-bolt-svg text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/>
+                                        </svg>
+                                        <div id="plan-battery-pct" class="battery-pct-badge">0%</div>
+                                    </div>
+                                </div>
+                                <div id="plan-battery-round-badge" class="mt-3 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                    ជុំទី 1 (ស ➔ បៃតង)
+                                </div>
+                                <div id="plan-battery-subtext" class="text-[11px] text-slate-400 mt-1 text-center">
+                                    សំណួរថ្ងៃនេះ៖ 0 / 0
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="plan-dashboard" class="space-y-6">
+                        <div class="bg-amber-50/80 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm">
+                            <h4 class="font-bold text-amber-900 text-sm md:text-base flex items-center gap-2 mb-1">
+                                <i class="fa-solid fa-lightbulb text-amber-600"></i> ដំបូន្មានដើម្បីទទួលបានអត្រាធ្វើត្រូវ ១០០% (Smart Repeat Recommendation)៖
+                            </h4>
+                            <div id="plan-smart-advice" class="text-slate-700 text-sm leading-relaxed">
+                                សូមកំណត់ថ្ងៃប្រឡង ឬចំនួនថ្ងៃរៀនខាងលើ រួចចុចប៊ូតុង «បង្កើត និងរក្សាទុកផែនការ»។
+                            </div>
+                        </div>
+
+                        <div class="border rounded-xl overflow-hidden shadow-sm bg-white">
+                            <div class="bg-slate-100 px-4 py-3 border-b flex flex-wrap justify-between items-center gap-3">
+                                <h3 class="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-calendar-days text-emerald-600"></i> ប្រតិទិនផែនការសិក្សាប្រចាំថ្ងៃ (Study Calendar)
+                                </h3>
+                                <div class="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-600">
+                                    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 bg-emerald-500 rounded-sm"></span> រួចរាល់</span>
+                                    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 bg-sky-500 rounded-sm"></span> ថ្ងៃនេះ</span>
+                                    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 bg-rose-500 rounded-sm"></span> ខកខាន (បែងចែកទៅថ្ងៃបន្ទាប់)</span>
+                                </div>
+                            </div>
+                            <div class="p-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+                                <div id="study-calendar-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+                            </div>
+                        </div>
+
+                        <div class="border rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-slate-100 px-4 py-3 border-b font-bold text-slate-800 text-sm">
+                                វឌ្ឍនភាពតាមផ្នែក និងចំនួនដងដែលត្រូវ Repeat បន្ថែម
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-xs md:text-sm">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b text-slate-600">
+                                            <th class="p-3 font-bold">ផ្នែកមុខវិជ្ជា (Module)</th>
+                                            <th class="p-3 font-bold text-center">ចំនួនសំណួរ</th>
+                                            <th class="p-3 font-bold text-center">បានធ្វើ (Answered)</th>
+                                            <th class="p-3 font-bold text-center">អត្រាត្រូវ (Accuracy)</th>
+                                            <th class="p-3 font-bold text-center">ចំនួនជុំបានធ្វើ</th>
+                                            <th class="p-3 font-bold">ដំបូន្មាន Repeat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="plan-module-table-body" class="divide-y divide-slate-200 bg-white"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+  </div>
